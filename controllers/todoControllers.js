@@ -68,8 +68,6 @@ const getTodos = async (req, res) => {
   }
 };
 
-
-
 const getTodoById = async  (req , res) => {
   const {id} = req.params
   try {
