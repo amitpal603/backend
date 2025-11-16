@@ -1,4 +1,5 @@
 const Todos = require('../models/todo')
+const redis = require('../config/redisConfig')
 
 const createTodos = async (req , res) => {
   const {title , description , duaDate} = req.body
@@ -25,27 +26,49 @@ const createTodos = async (req , res) => {
   }
 }
 
-const getTodos = async (req , res) => {
-    try {
-      const get = await Todos.find({})
+const getTodos = async (req, res) => {
+  try {
+    // check if cache exists
+    const cacheExists = await redis.exists('todos');
 
-      if(!get || get.length < 0){
-        return res.json({
-          success : false,
-          message : 'Not yet any task'
-        })
-      }
-      return res.status(200).json({
-        success : true,
-        todos : get
-      })
-    } catch (error) {
-       return res.status(500).json({
-        success : false,
-        message : 'Internal server error get todo !'
-    })
+    if (cacheExists) {
+      const todos = await redis.get('todos');
+      return res.json({
+        success: true,
+        todos: JSON.parse(todos),
+        cache: true
+      });
     }
-}
+
+    // fetch from database
+    const get = await Todos.find({});
+
+    if (!get || get.length === 0) {
+      return res.json({
+        success: false,
+        message: 'Not yet any task'
+      });
+    }
+
+    // store in redis (ioredis syntax)
+    await redis.set('todos', JSON.stringify(get), 'EX', 600); 
+
+    return res.status(200).json({
+      success: true,
+      todos: get,
+      cache: false
+    });
+
+  } catch (error) {
+    console.error("GET TODOS ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: `Internal server error get todo ! : ${error}`
+    });
+  }
+};
+
+
 
 const getTodoById = async  (req , res) => {
   const {id} = req.params
