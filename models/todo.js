@@ -13,9 +13,8 @@ const todoSchema = new mongoose.Schema({
         type : Boolean,
         default : false
     },
-    duaDate : {
+    dueDate : {
         type : Date,
-        required : true
     }
 } , {timestamps : true})
 

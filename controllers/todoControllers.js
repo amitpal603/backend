@@ -2,17 +2,17 @@ const Todos = require('../models/todo')
 const redis = require('../config/redisConfig')
 
 const createTodos = async (req , res) => {
-  const {title , description , duaDate} = req.body
+  const {title , description , dueDate} = req.body
 
   try {
-    const convert = new Date(duaDate)
+    const convert = new Date(dueDate)
      if (isNaN(convert.getTime())) {
       return res.status(400).json({
         success: false,
-        message: "Invalid date format. Use YYYY-MM-DD"
+        message: "Invalid date format. Use DD-MM-YYYY"
       });
     }
-    const todos = new Todos({title , description , duaDate : convert , completed : false})
+    const todos = new Todos({title , description , dueDate : convert , completed : false})
     await todos.save()
     return res.status(201).json({
         success :true,
@@ -93,7 +93,7 @@ const getTodoById = async  (req , res) => {
 
 const updateTodo = async (req , res) => {
    const {id} = req.params
-    const {title , description , duaDate , completed} = req.body
+    const {title , description , dueDate , completed} = req.body
   try {
     if (!id) {
       return res.status(400).json({
@@ -104,7 +104,7 @@ const updateTodo = async (req , res) => {
     const update = {
       ...(title !== undefined && {title}),
       ...(description !== undefined && {description}),
-      ...(duaDate !== undefined && {duaDate}),
+      ...(duaDate !== undefined && {dueDate}),
       ...(completed !== undefined &&{completed})
     }
     const updateData = await Todos.findByIdAndUpdate(id,update,{new : true})

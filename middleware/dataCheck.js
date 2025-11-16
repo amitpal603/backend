@@ -1,8 +1,8 @@
 
 const checkUserData = (req , res , next) => {
-    const {title , description , duaDate} = req.body
+    const {title , description , dueDate} = req.body
 
-    if(!title || !description || !duaDate){
+    if(!title || !description || !dueDate){
         return res.status(400).json({
             message :'All filed required'
         })
