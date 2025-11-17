@@ -1,5 +1,4 @@
 const Todos = require('../models/todo')
-const redis = require('../config/redisConfig')
 
 const createTodos = async (req , res) => {
   const {title , description , dueDate} = req.body
@@ -28,17 +27,8 @@ const createTodos = async (req , res) => {
 
 const getTodos = async (req, res) => {
   try {
-    // check if cache exists
-    const cacheExists = await redis.exists('todos');
-
-    if (cacheExists) {
-      const todos = await redis.get('todos');
-      return res.json({
-        success: true,
-        todos: JSON.parse(todos),
-        cache: true
-      });
-    }
+    
+    
 
     // fetch from database
     const get = await Todos.find({});
@@ -50,13 +40,10 @@ const getTodos = async (req, res) => {
       });
     }
 
-    // store in redis (ioredis syntax)
-    await redis.set('todos', JSON.stringify(get), 'EX', 600); 
-
+   
     return res.status(200).json({
       success: true,
       todos: get,
-      cache: false
     });
 
   } catch (error) {
@@ -104,7 +91,7 @@ const updateTodo = async (req , res) => {
     const update = {
       ...(title !== undefined && {title}),
       ...(description !== undefined && {description}),
-      ...(duaDate !== undefined && {dueDate}),
+      ...(dueDate !== undefined && {dueDate}),
       ...(completed !== undefined &&{completed})
     }
     const updateData = await Todos.findByIdAndUpdate(id,update,{new : true})
@@ -156,4 +143,29 @@ const deleteTodo = async (req , res) => {
     })
   }
 }
-module.exports = {createTodos , getTodos , getTodoById , updateTodo , deleteTodo}
+// update complete todo single task
+const toggleTodo = async (req , res) => {
+  const {id} = req.params
+ try {
+  const singleTodo = await Todos.findOne({_id : id})
+
+  if(!singleTodo){
+    return res.status(404).json({
+      success : false,
+      message : 'Not found todo'
+    })
+  }
+
+  singleTodo.completed = !singleTodo.completed
+  await singleTodo.save()
+
+  return res.json({
+    success : true,
+    message : 'Todo update successFully ..!',
+    singleTodo
+  })
+ } catch (error) {
+  console.log(error)
+ }
+}
+module.exports = {createTodos , getTodos , getTodoById , updateTodo , deleteTodo , toggleTodo}

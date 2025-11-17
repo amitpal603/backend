@@ -1,9 +1,9 @@
 const Redis = require('ioredis')
-
+require('dotenv')
 const redis = new Redis({
-     host : 'redis-13597.c305.ap-south-1-1.ec2.cloud.redislabs.com',
-       port : 13597,
-    password : 'giD7xTs13kFEGTWXMsVRH2A3x9WF9aoW'
+     host : process.env.REDIS_HOST,
+       port : process.env.REDIS_PORT,
+    password : process.env.REDIS_PASSWORD
 })
 
 redis.on('connect', () => {
