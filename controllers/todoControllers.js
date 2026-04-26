@@ -1,4 +1,6 @@
 const Todos = require('../models/todo')
+const { cache } = require('../config/redis')
+
 
 const createTodos = async (req , res) => {
   const {title , description , dueDate} = req.body
@@ -13,6 +15,10 @@ const createTodos = async (req , res) => {
     }
     const todos = new Todos({title , description , dueDate : convert , completed : false})
     await todos.save()
+
+    // Invalidate cache
+    await cache.del('all_todos');
+
     return res.status(201).json({
         success :true,
         todos
@@ -27,6 +33,18 @@ const createTodos = async (req , res) => {
 
 const getTodos = async (req, res) => {
   try {
+    // Check cache
+    const cachedTodos = await cache.get('all_todos');
+    if (cachedTodos) {
+      console.log('Cache Hit: all_todos');
+      return res.status(200).json({
+        success: true,
+        todos: cachedTodos,
+        fromCache: true
+      });
+    }
+
+    console.log('Cache Miss: all_todos');
     
     
 
@@ -41,6 +59,9 @@ const getTodos = async (req, res) => {
     }
 
    
+    // Set cache
+    await cache.set('all_todos', get);
+
     return res.status(200).json({
       success: true,
       todos: get,
@@ -58,6 +79,18 @@ const getTodos = async (req, res) => {
 const getTodoById = async  (req , res) => {
   const {id} = req.params
   try {
+    // Check cache
+    const cachedTodo = await cache.get(`todo:${id}`);
+    if (cachedTodo) {
+      console.log(`Cache Hit: todo:${id}`);
+      return res.status(200).json({
+        success: true,
+        todos: cachedTodo,
+        fromCache: true
+      });
+    }
+
+    console.log(`Cache Miss: todo:${id}`);
     const getById = await Todos.findById(id)
 
     if(!getById){
@@ -66,6 +99,10 @@ const getTodoById = async  (req , res) => {
         message : `wrong ID ${id}`
       })
     }
+
+    // Set cache
+    await cache.set(`todo:${id}`, getById);
+
     return res.status(200).json({
       success: true,
       todos : getById
@@ -101,6 +138,11 @@ const updateTodo = async (req , res) => {
         message: "Todo not found",
       });
     }
+
+    // Invalidate cache
+    await cache.del('all_todos');
+    await cache.del(`todo:${id}`);
+
     return res.json({
       success : true,
       todos : updateData,
@@ -131,6 +173,11 @@ const deleteTodo = async (req , res) => {
         message :'Todo not found'
       })
     }
+
+    // Invalidate cache
+    await cache.del('all_todos');
+    await cache.del(`todo:${id}`);
+
     return res.status(200).json({
       success : true,
       todos : deleteTask,
@@ -158,6 +205,10 @@ const toggleTodo = async (req , res) => {
 
   singleTodo.completed = !singleTodo.completed
   await singleTodo.save()
+
+  // Invalidate cache
+  await cache.del('all_todos');
+  await cache.del(`todo:${id}`);
 
   return res.json({
     success : true,
